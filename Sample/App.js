@@ -23,6 +23,8 @@ const instructions = Platform.select({
     'Shake or press menu button for dev menu',
 });
 
+var device = null;
+
 type Props = {};
 export default class App extends Component<Props> {
   render() {
@@ -37,8 +39,46 @@ export default class App extends Component<Props> {
         <Text style={styles.instructions}>
           {instructions}
         </Text>
-        <Button title="Test" onPress={() => {
-          Stone.testMethod().then( response => {
+        <Button title="Bluetooth List" onPress={() => {
+          Stone.getDevices().then( response => {
+            if (response && response[0]) {
+              device = response[0]['name']
+            }
+            console.log(response)
+          }).catch( error => {
+            console.log(error)
+          });
+        }} />
+        <Button title="Connect Device" onPress={() => {
+          device && Stone.selectDevice(device).then( response => {
+            console.log(response)
+          }).catch( error => {
+            console.log(error)
+          });
+        }} />
+        <Button title="Display Message" onPress={() => {
+          Stone.deviceDisplay("Mensagem!").then( response => {
+            console.log(response)
+          }).catch( error => {
+            console.log(error)
+          });
+        }} />
+        <Button title="Validate" onPress={() => {
+          Stone.validation("123462486").then( response => {
+            console.log(response)
+          }).catch( error => {
+            console.log(error)
+          });
+        }} />
+        <Button title="Transaction List" onPress={() => {
+          Stone.getTransactions().then( response => {
+            console.log(response)
+          }).catch( error => {
+            console.log(error)
+          });
+        }} />
+        <Button title="Transaction" onPress={() => {
+          Stone.transaction("10","CREDIT","ONE_INSTALMENT","Sucesso!").then( response => {
             console.log(response)
           }).catch( error => {
             console.log(error)
