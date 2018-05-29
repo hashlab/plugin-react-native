@@ -32,14 +32,17 @@ import stone.application.enums.TransactionStatusEnum;
 import stone.application.enums.TypeOfTransactionEnum;
 import stone.application.interfaces.StoneActionCallback;
 import stone.application.interfaces.StoneCallbackInterface;
+import stone.cache.ApplicationCache;
 import stone.database.transaction.TransactionDAO;
 import stone.database.transaction.TransactionObject;
 import stone.environment.Environment;
 import stone.providers.ActiveApplicationProvider;
 import stone.providers.BluetoothConnectionProvider;
+import stone.providers.CancellationProvider;
 import stone.providers.DisplayMessageProvider;
 import stone.providers.TransactionProvider;
 import stone.user.UserModel;
+import stone.utils.GlobalInformations;
 import stone.utils.PinpadObject;
 import stone.utils.Stone;
 import stone.utils.StoneTransaction;
@@ -56,29 +59,6 @@ public class RNStoneModule extends ReactContextBaseJavaModule {
     @Override
     public String getName() {
         return "RNStone";
-    }
-
-    @ReactMethod
-    public void validation(String stoneCode, final Promise promise) {
-
-        List<UserModel> user = StoneStart.init(reactContext);
-
-
-        final ActiveApplicationProvider activeApplicationProvider = new ActiveApplicationProvider(reactContext);
-        activeApplicationProvider.setDialogMessage("Ativando o aplicativo...");
-        activeApplicationProvider.setDialogTitle("Aguarde");
-        activeApplicationProvider.useDefaultUI(false);
-        activeApplicationProvider.setConnectionCallback(new StoneCallbackInterface() {
-            public void onSuccess() {
-                promise.resolve("Afiliação ativada com sucesso");
-            }
-
-            public void onError() {
-                promise.reject("error",activeApplicationProvider.getListOfErrors().toString());
-            }
-        });
-        activeApplicationProvider.activate(stoneCode);
-
     }
 
     @ReactMethod
@@ -126,6 +106,20 @@ public class RNStoneModule extends ReactContextBaseJavaModule {
 
         });
         bluetoothConnectionProvider.execute(); // Executa o provider de conexao bluetooth.
+    }
+
+    @ReactMethod
+    public void deviceIsConnected(final Promise promise) {
+        try {
+            PinpadObject pinpadObject = Stone.getPinpadFromListAt(0);
+            final BluetoothConnectionProvider bluetoothConnectionProvider = new BluetoothConnectionProvider(reactContext, pinpadObject);
+
+            boolean connectionStatus = bluetoothConnectionProvider.getConnectionStatus();
+            promise.resolve(connectionStatus);
+        } catch (Exception e) {
+            promise.reject("Error",e);
+        }
+
     }
 
     @ReactMethod
@@ -209,6 +203,31 @@ public class RNStoneModule extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
+    public void cancelTransaction(String transactionCode, final Promise promise) {
+        try {
+            String[] parts = transactionCode.split("_");
+
+            String idOptSelected = parts[0];
+            final int transacionId = Integer.parseInt(idOptSelected);
+
+            final CancellationProvider cancellationProvider = new CancellationProvider(reactContext, transacionId, Stone.getUserModel(0));
+            cancellationProvider.setConnectionCallback(new StoneCallbackInterface() { // chamada de retorno.
+                public void onSuccess() {
+                    promise.resolve("Cancelado com sucesso");
+                }
+
+                public void onError() {
+                    promise.resolve(cancellationProvider.getListOfErrors().toString() + " Erro ocorreu durante o cancelamento da transacao de id: " + transacionId);
+                }
+            });
+            cancellationProvider.execute();
+        } catch (Exception e) {
+            promise.reject("Error",e);
+        }
+
+    }
+
+    @ReactMethod
     public void getTransactions(final Promise promise) {
 
         TransactionDAO transactionDAO = new TransactionDAO(reactContext);
@@ -239,14 +258,30 @@ public class RNStoneModule extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
+    public void validation(String stoneCode, final Promise promise) {
+
+        List<UserModel> user = StoneStart.init(reactContext);
+
+
+        final ActiveApplicationProvider activeApplicationProvider = new ActiveApplicationProvider(reactContext);
+        activeApplicationProvider.setDialogMessage("Ativando o aplicativo...");
+        activeApplicationProvider.setDialogTitle("Aguarde");
+        activeApplicationProvider.useDefaultUI(false);
+        activeApplicationProvider.setConnectionCallback(new StoneCallbackInterface() {
+            public void onSuccess() {
+                promise.resolve("Afiliação ativada com sucesso");
+            }
+
+            public void onError() {
+                promise.reject("error",activeApplicationProvider.getListOfErrors().toString());
+            }
+        });
+        activeApplicationProvider.activate(stoneCode);
+
+    }
+
+    @ReactMethod
     public void setEnvironment(String environment, final Promise promise) {
-        /*
-        PRODUCTION,
-        INTERNAL_HOMOLOG,
-        SANDBOX,
-        STAGING,
-        INTERNAL_CERTIFICATION;
-         */
         Stone.setEnvironment(Environment.valueOf(environment));
         promise.resolve(Stone.getEnvironment().toString());
     }
