@@ -239,14 +239,33 @@ public class RNStoneModule extends ReactContextBaseJavaModule {
             rowOfList[i] = String.format("%s=%s\n%s", transactionObjects.get(i).getIdFromBase(), transactionObjects.get(i).getAmount(), transactionObjects.get(i).getTransactionStatus());
         }
 
+        UserModel userModel = Stone.getUserModel(0);
+        String sak = String.valueOf(userModel.getMerchantSak());
+
         try {
             WritableArray array = new WritableNativeArray();
 
             for(TransactionObject transactionObject : transactionObjects) {
                 WritableMap obj = new WritableNativeMap();
-                obj.putInt("id",transactionObject.getIdFromBase());
+
+                String initiatorKey = String.valueOf(transactionObject.getInitiatorTransactionKey());
+                String rcptTrx = String.valueOf(transactionObject.getRecipientTransactionIdentification());
+                String cardHolder = String.valueOf(transactionObject.getCardHolderName());
+                String cardNumber = String.valueOf(transactionObject.getCardHolderNumber());
+                String cardBrand = String.valueOf(transactionObject.getCardBrand());
+                String authorizationCode = String.valueOf(transactionObject.getAuthorizationCode());
+
+                obj.putInt("mpos_id",transactionObject.getIdFromBase());
                 obj.putString("amount",transactionObject.getAmount());
                 obj.putString("status",transactionObject.getTransactionStatus().toString());
+                obj.putString("initiatorKey",initiatorKey);
+                obj.putString("rcptTrx", rcptTrx);
+                obj.putString("cardHolder", cardHolder);                
+                obj.putString("cardNumber", cardNumber);                
+                obj.putString("cardBrand", cardBrand);                
+                obj.putString("authotizationCode", authorizationCode);                
+                obj.putString("sak", sak);                
+                
                 array.pushMap(obj);
             }
 
