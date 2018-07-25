@@ -263,7 +263,7 @@ public class RNStoneModule extends ReactContextBaseJavaModule {
                 obj.putString("cardHolder", cardHolder);                
                 obj.putString("cardNumber", cardNumber);                
                 obj.putString("cardBrand", cardBrand);                
-                obj.putString("authotizationCode", authorizationCode);                
+                obj.putString("authorizationCode", authorizationCode);                
                 obj.putString("sak", sak);                
                 
                 array.pushMap(obj);
