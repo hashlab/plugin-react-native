@@ -147,7 +147,7 @@ public class RNStoneModule extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void transaction(String amount, String method, String instalments, String successMessage, final Promise promise) {
+    public void transaction(String amount, String method, String instalments, String successMessage, String shortName, final Promise promise) {
 
         try {
             PinpadObject pinpadObject = Stone.getPinpadFromListAt(0);
@@ -157,6 +157,10 @@ public class RNStoneModule extends ReactContextBaseJavaModule {
             stoneTransaction.setAmount(amount);
             stoneTransaction.setEmailClient(null);
             stoneTransaction.setUserModel(Stone.getUserModel(0));
+
+						if (!shortName.isEmpty()) {
+							stoneTransaction.setShortName(shortName);							
+						}
 
             if (method.equals("DEBIT")) {
                 stoneTransaction.setInstalmentTransactionEnum(InstalmentTransactionEnum.getAt(0));

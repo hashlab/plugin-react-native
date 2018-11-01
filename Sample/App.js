@@ -64,7 +64,7 @@ export default class App extends Component {
   }
 
   transaction = () => {
-    Stone.transaction("10","CREDIT","ONE_INSTALMENT","Sucesso!").then( response => {
+    Stone.transaction("10","CREDIT","ONE_INSTALMENT","Sucesso!", "HASHLAB").then( response => {
       console.log(response)
     }).catch( error => {
       console.log(error)

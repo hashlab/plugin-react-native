@@ -15,8 +15,8 @@ const Stone = {
     deviceDisplay: (message) => {
         return RNStone.deviceDisplay(message);
     },
-    transaction: (amount,method,instalments,sucessMessage = "") => {
-        return RNStone.transaction(amount,method,instalments,sucessMessage);
+    transaction: (amount,method,instalments,sucessMessage = "", shortName = "") => {
+        return RNStone.transaction(amount,method,instalments,sucessMessage, shortName);
     },
     cancelTransaction: (transactionCode) => {
         return RNStone.cancelTransaction(transactionCode);
