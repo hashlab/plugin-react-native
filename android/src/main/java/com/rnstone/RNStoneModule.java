@@ -5,6 +5,7 @@ package com.rnstone;
 
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.graphics.BitmapFactory;
 import android.util.Log;
 
 import com.facebook.react.bridge.Promise;
@@ -16,12 +17,6 @@ import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.bridge.WritableNativeArray;
 import com.facebook.react.bridge.WritableNativeMap;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
@@ -32,7 +27,6 @@ import stone.application.enums.TransactionStatusEnum;
 import stone.application.enums.TypeOfTransactionEnum;
 import stone.application.interfaces.StoneActionCallback;
 import stone.application.interfaces.StoneCallbackInterface;
-import stone.cache.ApplicationCache;
 import stone.database.transaction.TransactionDAO;
 import stone.database.transaction.TransactionObject;
 import stone.environment.Environment;
@@ -42,10 +36,8 @@ import stone.providers.CancellationProvider;
 import stone.providers.DisplayMessageProvider;
 import stone.providers.TransactionProvider;
 import stone.user.UserModel;
-import stone.utils.GlobalInformations;
 import stone.utils.PinpadObject;
 import stone.utils.Stone;
-import stone.utils.StoneTransaction;
 
 public class RNStoneModule extends ReactContextBaseJavaModule {
 
@@ -54,6 +46,10 @@ public class RNStoneModule extends ReactContextBaseJavaModule {
     public RNStoneModule(ReactApplicationContext reactContext) {
         super(reactContext);
         this.reactContext = reactContext;
+
+        StoneStart.init(reactContext);
+        Stone.setAppName("RNStone Sample");
+        Stone.setEnvironment(Environment.PRODUCTION);
     }
 
     @Override
@@ -62,7 +58,7 @@ public class RNStoneModule extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void getDevices(final Promise promise){
+    public void getDevices(final Promise promise) {
         BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         Set<BluetoothDevice> pairedDevices = bluetoothAdapter.getBondedDevices();
 
@@ -74,12 +70,12 @@ public class RNStoneModule extends ReactContextBaseJavaModule {
                 WritableMap obj = new WritableNativeMap();
                 String name = device.getName();
                 String address = device.getAddress();
-                obj.putString("name",name + "_" + address);
+                obj.putString("name", name + "_" + address);
                 array.pushMap(obj);
             }
 
         }
-       promise.resolve(array);
+        promise.resolve(array);
     }
 
     @ReactMethod
@@ -101,7 +97,7 @@ public class RNStoneModule extends ReactContextBaseJavaModule {
             }
 
             public void onError() {
-                promise.reject("error","Erro durante a conexao."+bluetoothConnectionProvider.getListOfErrors().toString());
+                promise.reject("error", "Erro durante a conexao." + bluetoothConnectionProvider.getListOfErrors().toString());
             }
 
         });
@@ -111,13 +107,10 @@ public class RNStoneModule extends ReactContextBaseJavaModule {
     @ReactMethod
     public void deviceIsConnected(final Promise promise) {
         try {
-            PinpadObject pinpadObject = Stone.getPinpadFromListAt(0);
-            final BluetoothConnectionProvider bluetoothConnectionProvider = new BluetoothConnectionProvider(reactContext, pinpadObject);
-
-            boolean connectionStatus = bluetoothConnectionProvider.getConnectionStatus();
+            boolean connectionStatus = Stone.isConnectedToPinpad();
             promise.resolve(connectionStatus);
         } catch (Exception e) {
-            promise.reject("Error",e);
+            promise.reject("Error", e);
         }
 
     }
@@ -136,44 +129,63 @@ public class RNStoneModule extends ReactContextBaseJavaModule {
                 }
 
                 public void onError() {
-                    promise.reject("error","Erro durante a conexao."+displayMessageProvider.getListOfErrors().toString());
+                    promise.reject("error", "Erro durante a conexao." + displayMessageProvider.getListOfErrors().toString());
                 }
 
             });
             displayMessageProvider.execute();
         } catch (Exception e) {
-            promise.reject("Pinpad não instalado",e);
+            promise.reject("Pinpad não instalado", e);
         }
     }
 
     @ReactMethod
     public void transaction(String amount, String method, String instalments, String successMessage, String shortName, final Promise promise) {
-
         try {
             PinpadObject pinpadObject = Stone.getPinpadFromListAt(0);
 
-            StoneTransaction stoneTransaction = new StoneTransaction(pinpadObject);
+            TransactionObject stoneTransaction = new TransactionObject();
 
             stoneTransaction.setAmount(amount);
-            stoneTransaction.setEmailClient(null);
             stoneTransaction.setUserModel(Stone.getUserModel(0));
+            // A seguir deve-se popular o objeto.
+            //stoneTransaction.setSignature(BitmapFactory.decodeResource(getResources(), R.drawable.signature));
+            stoneTransaction.setCapture(true);
 
-						if (!shortName.isEmpty()) {
-							stoneTransaction.setShortName(shortName);							
-						}
+            stoneTransaction.setSubMerchantCity("city"); //Cidade do sub-merchant
+            stoneTransaction.setSubMerchantPostalAddress("00000000"); //CEP do sub-merchant (Apenas números)
+            stoneTransaction.setSubMerchantRegisteredIdentifier("00000000"); // Identificador do sub-merchant
+            stoneTransaction.setSubMerchantTaxIdentificationNumber("33368443000199"); // CNPJ do sub-merchant (apenas números)
+
+            //        Seleciona o mcc do lojista.
+            stoneTransaction.setSubMerchantCategoryCode("123");
+
+            //        Seleciona o endereço do lojista.
+            stoneTransaction.setSubMerchantAddress("address");
+
+            if (!shortName.isEmpty()) {
+                stoneTransaction.setShortName(shortName);
+            }
 
             if (method.equals("DEBIT")) {
-                stoneTransaction.setInstalmentTransactionEnum(InstalmentTransactionEnum.getAt(0));
+                stoneTransaction.setInstalmentTransaction(InstalmentTransactionEnum.getAt(0));
                 stoneTransaction.setTypeOfTransaction(TypeOfTransactionEnum.DEBIT);
             } else if (method.equals("CREDIT")) {
                 // Informa a quantidade de parcelas.
-                stoneTransaction.setInstalmentTransactionEnum(InstalmentTransactionEnum.valueOf(instalments));
+                stoneTransaction.setInstalmentTransaction(InstalmentTransactionEnum.valueOf(instalments));
                 stoneTransaction.setTypeOfTransaction(TypeOfTransactionEnum.CREDIT);
             } else {
-                promise.reject("error","Invalid Payment Method");
+                promise.reject("error", "Invalid Payment Method");
             }
 
-            final TransactionProvider provider = new TransactionProvider(reactContext, stoneTransaction, pinpadObject);
+
+
+            final TransactionProvider provider = new TransactionProvider(
+                    reactContext,
+                    stoneTransaction,
+                    Stone.getUserModel(0),
+                    pinpadObject
+            );
             provider.useDefaultUI(false);
             provider.setDialogMessage("Enviando..");
             provider.setDialogTitle("Aguarde");
@@ -188,19 +200,19 @@ public class RNStoneModule extends ReactContextBaseJavaModule {
                     if (provider.getTransactionStatus() == TransactionStatusEnum.APPROVED) {
                         promise.resolve("Transação enviada com sucesso e salva no banco. Para acessar, use o TransactionDAO.");
                     } else {
-                        promise.reject("error","Erro na transação: \"" + provider.getMessageFromAuthorize() + "\"");
+                        promise.reject("error", "Erro na transação: \"" + provider.getMessageFromAuthorize() + "\"");
                     }
                 }
 
                 public void onError() {
-                    promise.reject("error","Transação falhou");
+                    promise.reject("error", "Transação falhou");
                 }
             });
             provider.execute();
         } catch (IndexOutOfBoundsException e) {
-            promise.reject("Pinpad não instalado",e);
+            promise.reject("Pinpad não instalado", e);
         } catch (Exception e) {
-            promise.reject("error",e);
+            promise.reject("error", e);
         }
 
 
@@ -226,7 +238,7 @@ public class RNStoneModule extends ReactContextBaseJavaModule {
             });
             cancellationProvider.execute();
         } catch (Exception e) {
-            promise.reject("Error",e);
+            promise.reject("Error", e);
         }
 
     }
@@ -244,12 +256,12 @@ public class RNStoneModule extends ReactContextBaseJavaModule {
         }
 
         UserModel userModel = Stone.getUserModel(0);
-        String sak = String.valueOf(userModel.getMerchantSak());
+        //String sak = String.valueOf(userModel.getMerchantSak());
 
         try {
             WritableArray array = new WritableNativeArray();
 
-            for(TransactionObject transactionObject : transactionObjects) {
+            for (TransactionObject transactionObject : transactionObjects) {
                 WritableMap obj = new WritableNativeMap();
 
                 String initiatorKey = String.valueOf(transactionObject.getInitiatorTransactionKey());
@@ -259,17 +271,17 @@ public class RNStoneModule extends ReactContextBaseJavaModule {
                 String cardBrand = String.valueOf(transactionObject.getCardBrand());
                 String authorizationCode = String.valueOf(transactionObject.getAuthorizationCode());
 
-                obj.putInt("mpos_id",transactionObject.getIdFromBase());
-                obj.putString("amount",transactionObject.getAmount());
-                obj.putString("status",transactionObject.getTransactionStatus().toString());
-                obj.putString("initiatorKey",initiatorKey);
+                obj.putInt("mpos_id", transactionObject.getIdFromBase());
+                obj.putString("amount", transactionObject.getAmount());
+                obj.putString("status", transactionObject.getTransactionStatus().toString());
+                obj.putString("initiatorKey", initiatorKey);
                 obj.putString("rcptTrx", rcptTrx);
-                obj.putString("cardHolder", cardHolder);                
-                obj.putString("cardNumber", cardNumber);                
-                obj.putString("cardBrand", cardBrand);                
-                obj.putString("authotizationCode", authorizationCode);                
-                obj.putString("sak", sak);                
-                
+                obj.putString("cardHolder", cardHolder);
+                obj.putString("cardNumber", cardNumber);
+                obj.putString("cardBrand", cardBrand);
+                obj.putString("authotizationCode", authorizationCode);
+                //obj.putString("sak", sak);
+
                 array.pushMap(obj);
             }
 
@@ -296,7 +308,7 @@ public class RNStoneModule extends ReactContextBaseJavaModule {
             }
 
             public void onError() {
-                promise.reject("error",activeApplicationProvider.getListOfErrors().toString());
+                promise.reject("error", activeApplicationProvider.getListOfErrors().toString());
             }
         });
         activeApplicationProvider.activate(stoneCode);
