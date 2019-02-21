@@ -10,6 +10,13 @@ class TransactionDetailsScreen extends Component {
 
   constructor(props) {
     super(props);
+    this.cancelTransaction = this.cancelTransaction.bind(this);
+  }
+
+  async cancelTransaction() {
+    const { navigation } = this.props;
+    const transaction = navigation.getParam('transaction', null);
+    await Stone.cancelTransaction(`${transaction.mposId}`);
   }
 
   render() {
@@ -23,9 +30,9 @@ class TransactionDetailsScreen extends Component {
       mposId,
       amount,
       status,
-      initiatorKey,
-      rcptTrx,
-      cardHolder,
+      initiatorTransactionKey,
+      recipientTransactionIdentification,
+      cardHolderName,
       cardNumber,
       cardBrand,
       authorizationCode,
@@ -38,16 +45,18 @@ class TransactionDetailsScreen extends Component {
           <Text>mposId: {mposId}</Text>
           <Text>status: {status}</Text>
           <Text>amount: {amount}</Text>
-          <Text>initiatorKey: {initiatorKey}</Text>
-          <Text>rcptTrx: {rcptTrx}</Text>
-          <Text>cardHolder: {cardHolder}</Text>
+          <Text>initiatorKey: {initiatorTransactionKey}</Text>
+          <Text>rcptTrx: {recipientTransactionIdentification}</Text>
+          <Text>cardHolder: {cardHolderName}</Text>
           <Text>cardNumber: {cardNumber}</Text>
           <Text>cardBrand: {cardBrand}</Text>
           <Text>authorizationCode: {authorizationCode}</Text>
           <Text>SAK: {sak}</Text>
         </View>
 
-        <Button title="Cancelar" />
+        <Button title="Cancelar"
+          onPress={this.cancelTransaction}
+         />
       </View>
     );
   }

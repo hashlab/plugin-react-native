@@ -20,8 +20,7 @@ class TransactionHistoryScreen extends Component {
       <View>
         <TransactionList
           onTransactionSelected={ transaction => {
-            console.log("Navigate!", transaction)
-            navigation.navigate('TransactionDetails', { transaction, teste: 1234 })
+            navigation.navigate('TransactionDetails', { transaction })
           }
           }
          />

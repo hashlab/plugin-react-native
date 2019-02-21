@@ -31,7 +31,7 @@ class TransactionList extends Component {
   }
 
   async updateTransactions() {
-    const transactions = await Stone.getTransactions();
+    const transactions = await Stone.getAllTransactionsOrderByIdDesc();
     this.setState({ transactions });
   }
 

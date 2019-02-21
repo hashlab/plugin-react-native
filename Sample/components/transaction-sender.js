@@ -31,7 +31,7 @@ class TransactionSender extends Component {
     try {
       await Stone.sendTransaction(
         {
-          amount: amountInCents,
+          amountInCents,
           method,
           instalments,
           successMessage,
@@ -45,6 +45,12 @@ class TransactionSender extends Component {
     } catch (err) {
       this.setState({ sendingTransaction: false, errorMessage: err.message || err.name });
     }
+
+    const lastTransaction = await Stone.getLastTransaction();
+    console.log('lastTransaction', lastTransaction);
+
+    const lastTransactionId = await Stone.getLastTransactionId();
+    console.log('lastTransactionId', lastTransactionId);
   }
 
   updateTransaction(updatedFields) {

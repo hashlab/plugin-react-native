@@ -28,7 +28,6 @@ class TransactionScreen extends Component {
   }
 
   onDeviceSelected(device) {
-    console.log("onDeviceSelecfted", device)
     this.setState({ selectedDevice: device });
   }
 
@@ -41,7 +40,6 @@ class TransactionScreen extends Component {
   async connectToDevice() {
     const { selectedDevice } = this.state;
     this.setState({ connectingToDevice: true });
-    console.log('Connect to device', selectedDevice);
 
     try {
       await Stone.connectDevice(selectedDevice);
@@ -66,7 +64,6 @@ class TransactionScreen extends Component {
       connectButtonTitle = 'Conectado';
     }
 
-    console.log("Render!!", selectedDevice, connectedDevice)
     return (
       <View style={{ padding: 8 }}>
         <Text>1. Conecte ao pinpad</Text>
