@@ -1,6 +1,6 @@
 # React Native Stone
 
-React native module for Stone SDK
+React native module for [Stone SDK v3.0.1](https://sdkandroid.stone.com.br/docs)
 
 ## Steps
 
@@ -38,7 +38,7 @@ import com.rnstone.RNStonePackage;
 
 ```
 
-### Posible issues
+### Possible issues
 
 You may need to add on `AndroidManifest.xml`
 ```
@@ -59,40 +59,57 @@ allprojects {
 }
 ```
 
-## Methods
+### Usage
+
+Sending a transaction
+
+```javascript
+import { Stone } from 'react-native-stone';
+
+// The stoneCode must be active
+await Stone.setEnvironment(Stone.environment.PRODUCTION)
+await Stone.activate("<your-stonecode-here>")
+
+// The pinpad must be connected
+const devices = await Stone.getPairedBluetoothDevices()
+await Stone.connectDevice(devices[0])
+
+await Stone.sendTransaction(
+  {
+    amountInCents: '10',
+    method: Stone.transactionMethod.CREDIT,
+    instalments: Stone.transactionInstalment.ONE_INSTALMENT,
+    successMessage: 'Transação bem sucedida',
+    shortName: 'Hash',
+  },
+  {
+    onStatusChange: function({ status }) {
+    /* status may be:
+     *
+     *     TRANSACTION_WAITING_CARD,
+     *     TRANSACTION_WAITING_SWIPE_CARD,
+     *     TRANSACTION_WAITING_PASSWORD,
+     *     TRANSACTION_SENDING,
+     *     TRANSACTION_REMOVE_CARD,
+     *     REVERSING_TRANSACTION_WITH_ERROR,
+     *     TRANSACTION_CARD_REMOVED,
+     *     TRANSACTION_TYPE_SELECTION;
+     */
+    }
+    console.log(status)
+  }
+);
 ```
-    getDevices: () => {
-        return RNStone.getDevices();
-    },
-    selectDevice: (device) => {
-        return RNStone.selectDevice(device);
-    },
-    deviceIsConnected: () => {
-        return RNStone.deviceIsConnected();
-    },
-    deviceDisplay: (message) => {
-        return RNStone.deviceDisplay(message);
-    },
-    transaction: (amount,method,instalments,sucessMessage = "") => {
-        return RNStone.transaction(amount,method,instalments,sucessMessage);
-    },
-    cancelTransaction: (transactionCode) => {
-        return RNStone.cancelTransaction(transactionCode);
-    },
-    getTransactions: () => {
-        return RNStone.getTransactions();
-    },
-    validation: (stoneCode) => {
-        return RNStone.validation(stoneCode);
-    },
-    setEnvironment: (environment) => {
-        /*
-        PRODUCTION,
-        INTERNAL_HOMOLOG,
-        SANDBOX,
-        STAGING,
-        INTERNAL_CERTIFICATION;
-         */
-        return RNStone.validation(environment);
-    },
+
+Cancel transaction
+
+```javascript
+const transactionId = await Stone.getLastTransactionId();
+await Stone.cancelTransaction(transactionId);
+```
+
+List transactions
+
+```javascript
+const transactions = await Stone.getAllTransactionsOrderByIdDesc();
 ```
