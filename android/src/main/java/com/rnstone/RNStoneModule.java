@@ -172,17 +172,24 @@ public class RNStoneModule extends ReactContextBaseJavaModule {
   }
 
   @ReactMethod
-  public void transaction(String amount, String method, String instalments, String successMessage, String shortName, final Promise promise) {
+  public void transaction(String amount, String method, String instalments, String successMessage, String shortName, String initiatorTransactionKey, final Promise promise) {
+    if(!Stone.isConnectedToPinpad()) {
+      promise.reject("[NOT_CONNECTED_TO_PINPAD]", new Exception("[NOT_CONNECTED_TO_PINPAD]"));
+      return;
+    }
+
     try {
       PinpadObject pinpadObject = Stone.getPinpadFromListAt(0);
 
       final TransactionObject stoneTransaction = new TransactionObject();
 
+      if(initiatorTransactionKey != null && !"".equals(initiatorTransactionKey)) {
+        stoneTransaction.setInitiatorTransactionKey(initiatorTransactionKey);
+      }
       stoneTransaction.setAmount(amount);
       stoneTransaction.setUserModel(Stone.getUserModel(0));
       //stoneTransaction.setSignature(BitmapFactory.decodeResource(getResources(), R.drawable.signature));
       stoneTransaction.setCapture(true);
-
       if (!shortName.isEmpty()) {
         stoneTransaction.setShortName(shortName);
       }
@@ -239,16 +246,16 @@ public class RNStoneModule extends ReactContextBaseJavaModule {
     } catch (IndexOutOfBoundsException e) {
       promise.reject("Pinpad não instalado", e);
     } catch (Exception e) {
-      promise.reject("error", e);
+      promise.reject(e);
     }
 
 
   }
 
   @ReactMethod
-  public void sendTransaction(String amount, String method, String instalments, String successMessage, String shortName, final Promise promise) {
-    Log.d(TAG, "sendTransaction: amount=[" + amount + "] method=[" + method + "] instalments=[" + instalments + "] successMessage=[" + successMessage + "] shortName=[" + shortName + "]");
-    transaction(amount, method, instalments, successMessage, shortName, promise);
+  public void sendTransaction(String amount, String method, String instalments, String successMessage, String shortName, String initiatorTransactionKey, final Promise promise) {
+    Log.d(TAG, "sendTransaction: amount=[" + amount + "] method=[" + method + "] instalments=[" + instalments + "] successMessage=[" + successMessage + "] shortName=[" + shortName + "] initiatorTransactionKey=[" + initiatorTransactionKey + "]");
+    transaction(amount, method, instalments, successMessage, shortName, initiatorTransactionKey, promise);
   }
 
   @ReactMethod
@@ -277,6 +284,7 @@ public class RNStoneModule extends ReactContextBaseJavaModule {
 
   }
 
+  @Deprecated
   @ReactMethod
   public void getTransactions(final Promise promise) {
 
@@ -302,15 +310,15 @@ public class RNStoneModule extends ReactContextBaseJavaModule {
         String cardBrand = String.valueOf(transactionObject.getCardBrand());
         String authorizationCode = String.valueOf(transactionObject.getAuthorizationCode());
 
-        obj.putInt("mposId", transactionObject.getIdFromBase());
-        obj.putString("amount", transactionObject.getAmount());
-        obj.putString("status", transactionObject.getTransactionStatus().toString());
-        obj.putString("initiatorKey", initiatorKey);
+        obj.putInt("mpos_id",transactionObject.getIdFromBase());
+        obj.putString("amount",transactionObject.getAmount());
+        obj.putString("status",transactionObject.getTransactionStatus().toString());
+        obj.putString("initiatorKey",initiatorKey);
         obj.putString("rcptTrx", rcptTrx);
         obj.putString("cardHolder", cardHolder);
         obj.putString("cardNumber", cardNumber);
         obj.putString("cardBrand", cardBrand);
-        obj.putString("authorizationCode", authorizationCode);
+        obj.putString("authotizationCode", authorizationCode);
         obj.putString("sak", transactionObject.getSaleAffiliationKey());
 
         array.pushMap(obj);
@@ -381,6 +389,80 @@ public class RNStoneModule extends ReactContextBaseJavaModule {
       promise.resolve(device);
     } else {
       promise.resolve(null);
+    }
+  }
+
+  @ReactMethod
+  public void getLastTransaction(final Promise promise) {
+    TransactionDAO transactionDAO = new TransactionDAO(reactContext);
+    TransactionObject trx = transactionDAO.findTransactionWithId(transactionDAO.getLastTransactionId());
+
+    promise.resolve(toWritableMap(trx));
+  }
+
+  @ReactMethod
+  public void getLastTransactionId(final Promise promise) {
+    TransactionDAO transactionDAO = new TransactionDAO(reactContext);
+    promise.resolve(String.valueOf(transactionDAO.getLastTransactionId()));
+  }
+
+  @ReactMethod
+  public void findTransactionWithAuthorizationCode(String authorizationCode, final Promise promise) {
+    TransactionDAO transactionDAO = new TransactionDAO(reactContext);
+    promise.resolve(transactionDAO.findTransactionWithAuthorizationCode(authorizationCode));
+  }
+
+  @ReactMethod
+  public void findTransactionWithInitiatorTransactionKey(String initiatorTransactionKey, final Promise promise) {
+    TransactionDAO transactionDAO = new TransactionDAO(reactContext);
+    promise.resolve(transactionDAO.findTransactionWithInitiatorTransactionKey(initiatorTransactionKey));
+  }
+
+  @ReactMethod
+  public void findTransactionWithId(String transactionId, final Promise promise) {
+    TransactionDAO transactionDAO = new TransactionDAO(reactContext);
+    promise.resolve(transactionDAO.findTransactionWithId(Integer.parseInt(transactionId)));
+  }
+
+  private WritableMap toWritableMap(TransactionObject trx) {
+    WritableMap obj = new WritableNativeMap();
+
+    String initiatorKey = String.valueOf(trx.getInitiatorTransactionKey());
+    String rcptTrx = String.valueOf(trx.getRecipientTransactionIdentification());
+    String cardHolder = String.valueOf(trx.getCardHolderName());
+    String cardNumber = String.valueOf(trx.getCardHolderNumber());
+    String cardBrand = String.valueOf(trx.getCardBrand());
+    String authorizationCode = String.valueOf(trx.getAuthorizationCode());
+
+    obj.putString("mposId", String.valueOf(trx.getIdFromBase()));
+    obj.putString("amount", trx.getAmount());
+    obj.putString("status", trx.getTransactionStatus().toString());
+    obj.putString("initiatorTransactionKey", initiatorKey);
+    obj.putString("recipientTransactionIdentification", rcptTrx);
+    obj.putString("cardHolderName", cardHolder);
+    obj.putString("cardNumber", cardNumber);
+    obj.putString("cardBrand", cardBrand);
+    obj.putString("authorizationCode", authorizationCode);
+    obj.putString("sak", trx.getSaleAffiliationKey());
+
+    return obj;
+  }
+
+  @ReactMethod
+  public void getAllTransactionsOrderByIdDesc(final Promise promise) {
+    TransactionDAO transactionDAO = new TransactionDAO(reactContext);
+
+    List<TransactionObject> transactionObjects = transactionDAO.getAllTransactionsOrderByIdDesc();
+    try {
+      WritableArray array = new WritableNativeArray();
+
+      for (TransactionObject transactionObject : transactionObjects) {
+        array.pushMap(toWritableMap(transactionObject));
+      }
+
+      promise.resolve(array);
+    } catch (Exception e) {
+      promise.reject(e);
     }
   }
 

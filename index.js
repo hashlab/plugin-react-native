@@ -3,11 +3,14 @@ import { NativeModules, DeviceEventEmitter } from 'react-native';
 const { RNStone } = NativeModules;
 
 const Stone = {
+    /**
+     * @deprecated Use getPairedBluetoothDevices()
+     */
     getDevices: () => {
         return RNStone.getDevices();
     },
     /**
-     * @deprecated Use connectDevice
+     * @deprecated Use connectDevice()
      */
     selectDevice: (device) => {
         return RNStone.selectDevice(device);
@@ -18,17 +21,28 @@ const Stone = {
     deviceDisplay: (message) => {
         return RNStone.deviceDisplay(message);
     },
+
+    /**
+     * @deprecated Use sendTransaction()
+     */
     transaction: (amount,method,instalments,sucessMessage = "", shortName = "") => {
-      return RNStone.transaction(amount,method,instalments,sucessMessage, shortName);
+      return RNStone.transaction(amount,method,instalments,sucessMessage, shortName,null);
     },
+
+    /**
+     * transactionCode is the mposId field in the transaction object
+     */
     cancelTransaction: (transactionCode) => {
         return RNStone.cancelTransaction(transactionCode);
     },
+    /**
+     * @deprecated Use getAllTransactionsOrderByIdDesc()
+     */
     getTransactions: () => {
         return RNStone.getTransactions();
     },
     /**
-     * @deprecated Use activate
+     * @deprecated Use activate()
      */
     validation: (stoneCode) => {
         return RNStone.validation(stoneCode);
@@ -66,8 +80,29 @@ const Stone = {
       return RNStone.connectDevice(device.name, device.address)
     },
 
+    /**
+     * Returns null if none is connected
+     */
     getConnectedDevice() {
       return RNStone.getConnectedDevice()
+    },
+
+    /**
+     * @returns ArrayOf({
+     *  mposId: string,
+     *  amount: string,
+     *  status: string,
+     *  initiatorTransactionKey: string,
+     *  recipientTransactionIdentification: string
+     *  cardHolderName: string,
+     *  cardNumber: string,
+     *  cardBrand: string,
+     *  authorizationCode: string
+     *  sak: string
+     * })
+     */
+    getAllTransactionsOrderByIdDesc() {
+      return RNStone.getAllTransactionsOrderByIdDesc();
     },
 
     /**
@@ -84,7 +119,7 @@ const Stone = {
      */
     async sendTransaction(transaction, opts) {
       opts = opts || {}
-      const { amount, method, instalments, sucessMessage = "", shortName = "" } = transaction
+      const { amountInCents, method, instalments, initiatorTransactionKey = null, sucessMessage = "", shortName = "" } = transaction
 
       let subscription
       if(opts.onStatusChange) {
@@ -93,12 +128,32 @@ const Stone = {
           opts.onStatusChange
         )
       }
-      const result = await RNStone.sendTransaction(amount, method, instalments, sucessMessage, shortName);
+      const result = await RNStone.sendTransaction(amountInCents, method, instalments, sucessMessage, shortName, initiatorTransactionKey);
 
       if(subscription) {
         subscription.remove();
       }
       return result
+    },
+
+    findTransactionWithInitiatorTransactionKey(initiatorTransactionKey) {
+      return RNStone.findTransactionWithInitiatorTransactionKey(initiatorTransactionKey);
+    },
+
+    findTransactionWithId(transactionId) {
+      return RNStone.findTransactionWithId(transactionId);
+    },
+
+    findTransactionWithAuthorizationCode(authorizationCode) {
+      return RNStone.findTransactionWithAuthorizationCode(authorizationCode);
+    },
+
+    getLastTransactionId() {
+      return RNStone.getLastTransactionId();
+    },
+
+    getLastTransaction() {
+      return RNStone.getLastTransaction();
     },
 
     environment: {
