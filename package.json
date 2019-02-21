@@ -1,6 +1,6 @@
 {
   "name": "react-native-stone",
-  "version": "1.0.1",
+  "version": "3.0.1",
   "description": "React Native module of stone-sdk",
   "main": "index.js",
   "scripts": {
